@@ -1,6 +1,7 @@
 import streamlit as st
 from corep_engine import corep_assistant, load_retrieval_system, init_gemini_client
-from api_key import API_KEY
+API_KEY = st.secrets["API_KEY"]
+
 
 st.title("📌 COREP Reporting Assistant")
 
