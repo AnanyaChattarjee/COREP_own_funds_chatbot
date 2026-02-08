@@ -9,8 +9,9 @@ import pickle
 import json
 import os
 from google import genai
+import streamlit as st
+API_KEY = st.secrets["API_KEY"]
 
-from api_key import API_KEY
 
 
 
