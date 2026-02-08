@@ -1,5 +1,5 @@
 import streamlit as st
-from corep_engine import corep_assistant, load_retrieval_system, init_gemini_client
+from src import corep_assistant, load_retrieval_system, init_gemini_client
 API_KEY = st.secrets["API_KEY"]
 
 
