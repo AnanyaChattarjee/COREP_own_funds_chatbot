@@ -23,3 +23,10 @@ if st.button("Generate COREP Output"):
     )
 
     st.json(output["structured_json"])
+   
+    st.subheader("📌 COREP JSON Output")
+    st.json(result_json)
+
+    st.subheader("📊 COREP Human Readable Table")
+    corep_df = corep_json_to_table(result_json)
+    st.dataframe(corep_df)
