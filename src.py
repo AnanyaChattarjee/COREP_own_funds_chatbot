@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[57]:
+
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,199 +15,240 @@ import pickle
 import json
 import os
 from google import genai
-import streamlit as st
-API_KEY = st.secrets["API_KEY"]
+
+from api_key import API_KEY
 
 
 
 
-
-# def extract_text_from_pdf(pdf_path):
-#     """Extracts all text from a given PDF file."""
-#     reader = PdfReader(pdf_path)
-#     full_text = ""
-#     for page in reader.pages:
-#         full_text += page.extract_text() or "" 
-#     return full_text
+# In[58]:
 
 
-# file_path1 = 'documents/corep-own-funds-instructions.pdf'
-# file_path2 = 'documents/Reporting (CRR)_06-02-2026.pdf'
-# own_funds_instructions = extract_text_from_pdf(file_path1)
-# reporting_crr = extract_text_from_pdf(file_path2)
+def extract_text_from_pdf(pdf_path):
+    """Extracts all text from a given PDF file."""
+    reader = PdfReader(pdf_path)
+    full_text = ""
+    for page in reader.pages:
+        full_text += page.extract_text() or "" 
+    return full_text
 
 
-
-# data_list = list()
-# i =0
-# while (i < len(own_funds_instructions)):
-#     row = {'chunk_id': 'corep_'+str(int(i/1000)),'text':own_funds_instructions[i:i+1200]	,'source':'COREP_Annex_II'}
-#     i=i+1000
-#     data_list.append(row)
-
-# data1=pd.DataFrame(data_list)
-# def is_junk_chunk(text, min_len=200):
-#     if not isinstance(text, str):
-#         return True
-
-#     t = text.strip()
-
-#     if len(t) < min_len:
-#         return True
-
-#     no_space = re.sub(r"\s+", "", t)
-
-#     # mostly punctuation/dots
-#     if len(re.sub(r"[A-Za-z0-9]", "", no_space)) / len(no_space) > 0.85:
-#         return True
-
-#     # long dotted separator
-#     if re.search(r"\.{15,}", t):
-#         return True
-
-#     # very low alphabetic content
-#     alpha_chars = sum(c.isalpha() for c in t)
-#     if alpha_chars / len(t) < 0.15:
-#         return True
-
-#     return False
+file_path1 = 'documents/corep-own-funds-instructions.pdf'
+file_path2 = 'documents/Reporting (CRR)_06-02-2026.pdf'
+own_funds_instructions = extract_text_from_pdf(file_path1)
+reporting_crr = extract_text_from_pdf(file_path2)
 
 
-# data1_clean = data1.copy()
-# data1_clean["is_junk"] = data1_clean["text"].apply(is_junk_chunk)
-
-# print("Before:", len(data1_clean))
-
-# data1_clean = data1_clean[data1_clean["is_junk"] == False] \
-#     .drop(columns=["is_junk"]) \
-#     .reset_index(drop=True)
-
-# print("After:", len(data1_clean))
-# # Separate COREP and PRA
-# corep_df = data1_clean[data1_clean["source"] == "COREP_Annex_II"].copy().reset_index(drop=True)
+# In[59]:
 
 
-# # Reassign sequential chunk_ids
-# corep_df["chunk_id"] = [f"corep_{i:04d}" for i in range(len(corep_df))]
+print(len(own_funds_instructions), len(reporting_crr))
 
 
-# # Merge back
-# data1 = pd.concat([corep_df], ignore_index=True)
+# In[60]:
 
 
+data_list = list()
+i =0
+while (i < len(own_funds_instructions)):
+    row = {'chunk_id': 'corep_'+str(int(i/1000)),'text':own_funds_instructions[i:i+1200]	,'source':'COREP_Annex_II'}
+    i=i+1000
+    data_list.append(row)
 
-# data_list_new = list()
-# i =0
-# while (i < len(reporting_crr)):
-#     row = {'chunk_id': 'pra_'+str(int(i/1000)),'text':reporting_crr[i:i+1200]	,'source':'PRA_RULEBOOK'}
-#     i=i+1000
-#     data_list_new.append(row)
+data1=pd.DataFrame(data_list)
+def is_junk_chunk(text, min_len=200):
+    if not isinstance(text, str):
+        return True
 
-# data2=pd.DataFrame(data_list_new)
-# def is_junk_chunk(text, min_len=200):
-#     if not isinstance(text, str):
-#         return True
+    t = text.strip()
 
-#     t = text.strip()
+    if len(t) < min_len:
+        return True
 
-#     if len(t) < min_len:
-#         return True
+    no_space = re.sub(r"\s+", "", t)
 
-#     no_space = re.sub(r"\s+", "", t)
+    # mostly punctuation/dots
+    if len(re.sub(r"[A-Za-z0-9]", "", no_space)) / len(no_space) > 0.85:
+        return True
 
-#     # mostly punctuation/dots
-#     if len(re.sub(r"[A-Za-z0-9]", "", no_space)) / len(no_space) > 0.85:
-#         return True
+    # long dotted separator
+    if re.search(r"\.{15,}", t):
+        return True
 
-#     # long dotted separator
-#     if re.search(r"\.{15,}", t):
-#         return True
+    # very low alphabetic content
+    alpha_chars = sum(c.isalpha() for c in t)
+    if alpha_chars / len(t) < 0.15:
+        return True
 
-#     # very low alphabetic content
-#     alpha_chars = sum(c.isalpha() for c in t)
-#     if alpha_chars / len(t) < 0.15:
-#         return True
-
-#     return False
-
-
-# data2_clean = data2.copy()
-# data2_clean["is_junk"] = data2_clean["text"].apply(is_junk_chunk)
-
-# print("Before:", len(data2_clean))
-
-# data2_clean = data2_clean[data2_clean["is_junk"] == False] \
-#     .drop(columns=["is_junk"]) \
-#     .reset_index(drop=True)
-
-# print("After:", len(data2_clean))
-# pra_df   = data2_clean[data2_clean["source"] == "PRA_RULEBOOK"].copy().reset_index(drop=True)
-
-# pra_df["chunk_id"]   = [f"pra_{i:04d}" for i in range(len(pra_df))]
-
-# # Merge back
-# data2 = pd.concat([ pra_df], ignore_index=True)
+    return False
 
 
-# data_final = pd.concat([data1,data2],ignore_index=True)
-# data_final
+data1_clean = data1.copy()
+data1_clean["is_junk"] = data1_clean["text"].apply(is_junk_chunk)
+
+print("Before:", len(data1_clean))
+
+data1_clean = data1_clean[data1_clean["is_junk"] == False] \
+    .drop(columns=["is_junk"]) \
+    .reset_index(drop=True)
+
+print("After:", len(data1_clean))
+# Separate COREP and PRA
+corep_df = data1_clean[data1_clean["source"] == "COREP_Annex_II"].copy().reset_index(drop=True)
 
 
-# bad_patterns = r"\[Deleted\]|\[ Deleted \]|Provision left blank|can be found here|\[Deleted\.\]"
+# Reassign sequential chunk_ids
+corep_df["chunk_id"] = [f"corep_{i:04d}" for i in range(len(corep_df))]
 
-# data_final = data_final[
-#     ~data_final["text"].str.contains(bad_patterns, regex=True, flags=re.IGNORECASE)
-# ].copy()
 
-# data_final = data_final.reset_index(drop=True)
-# keep_keywords = r"COREP|own funds|CET1|Tier 1|Tier 2|capital requirements|CRR"
+# Merge back
+data1 = pd.concat([corep_df], ignore_index=True)
 
-# pra_useful = data_final[
-#     (data_final["source"] == "PRA_RULEBOOK") &
-#     (data_final["text"].str.contains(keep_keywords, regex=True, flags=re.IGNORECASE))
-# ]
-
-# corep_all = data_final[data_final["source"] == "COREP_Annex_II"]
-
-# data_final = pd.concat([corep_all, pra_useful], ignore_index=True)
-# data_final = data_final.reset_index(drop=True)
+# Check
+data1
 
 
 
-# model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+# In[61]:
 
-# embeddings = model.encode(
-#     data_final["text"].tolist(),
-#     show_progress_bar=True,normalize_embeddings=True
-# )
 
-# embeddings = np.array(embeddings).astype("float32")
-# data_final["embedding_text"] = list(embeddings)
+data_list_new = list()
+i =0
+while (i < len(reporting_crr)):
+    row = {'chunk_id': 'pra_'+str(int(i/1000)),'text':reporting_crr[i:i+1200]	,'source':'PRA_RULEBOOK'}
+    i=i+1000
+    data_list_new.append(row)
+
+data2=pd.DataFrame(data_list_new)
+def is_junk_chunk(text, min_len=200):
+    if not isinstance(text, str):
+        return True
+
+    t = text.strip()
+
+    if len(t) < min_len:
+        return True
+
+    no_space = re.sub(r"\s+", "", t)
+
+    # mostly punctuation/dots
+    if len(re.sub(r"[A-Za-z0-9]", "", no_space)) / len(no_space) > 0.85:
+        return True
+
+    # long dotted separator
+    if re.search(r"\.{15,}", t):
+        return True
+
+    # very low alphabetic content
+    alpha_chars = sum(c.isalpha() for c in t)
+    if alpha_chars / len(t) < 0.15:
+        return True
+
+    return False
+
+
+data2_clean = data2.copy()
+data2_clean["is_junk"] = data2_clean["text"].apply(is_junk_chunk)
+
+print("Before:", len(data2_clean))
+
+data2_clean = data2_clean[data2_clean["is_junk"] == False] \
+    .drop(columns=["is_junk"]) \
+    .reset_index(drop=True)
+
+print("After:", len(data2_clean))
+pra_df   = data2_clean[data2_clean["source"] == "PRA_RULEBOOK"].copy().reset_index(drop=True)
+
+pra_df["chunk_id"]   = [f"pra_{i:04d}" for i in range(len(pra_df))]
+
+# Merge back
+data2 = pd.concat([ pra_df], ignore_index=True)
+
+# Check
+data2
+
+
+
+# In[62]:
+
+
+data_final = pd.concat([data1,data2],ignore_index=True)
+data_final
+
+
+# In[63]:
+
+
+bad_patterns = r"\[Deleted\]|\[ Deleted \]|Provision left blank|can be found here|\[Deleted\.\]"
+
+data_final = data_final[
+    ~data_final["text"].str.contains(bad_patterns, regex=True, flags=re.IGNORECASE)
+].copy()
+
+data_final = data_final.reset_index(drop=True)
+keep_keywords = r"COREP|own funds|CET1|Tier 1|Tier 2|capital requirements|CRR"
+
+pra_useful = data_final[
+    (data_final["source"] == "PRA_RULEBOOK") &
+    (data_final["text"].str.contains(keep_keywords, regex=True, flags=re.IGNORECASE))
+]
+
+corep_all = data_final[data_final["source"] == "COREP_Annex_II"]
+
+data_final = pd.concat([corep_all, pra_useful], ignore_index=True)
+data_final = data_final.reset_index(drop=True)
+
+
+
+# In[64]:
+
+
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+
+embeddings = model.encode(
+    data_final["text"].tolist(),
+    show_progress_bar=True,normalize_embeddings=True
+)
+
+embeddings = np.array(embeddings).astype("float32")
+data_final["embedding_text"] = list(embeddings)
 
 # for i in data_final['text']:
 #     data_final['text'] = model.encode(i)
 
 
-# dimension = embeddings.shape[1]
-# index = faiss.IndexFlatIP(dimension)
-# index.add(embeddings)
-
-# faiss.write_index(index, "corep_faiss.index")
+# In[65]:
 
 
+data_final
 
 
-# metadata = data_final[["chunk_id", "source", "text"]].to_dict(orient="records")
+# In[66]:
 
-# with open("corep_metadata.pkl", "wb") as f:
-#     pickle.dump(metadata, f)
 
+dimension = embeddings.shape[1]
+index = faiss.IndexFlatIP(dimension)
+index.add(embeddings)
+
+faiss.write_index(index, "corep_faiss.index")
+
+
+# In[67]:
+
+
+metadata = data_final[["chunk_id", "source", "text"]].to_dict(orient="records")
+
+with open("corep_metadata.pkl", "wb") as f:
+    pickle.dump(metadata, f)
+
+
+# In[68]:
 
 
 def load_retrieval_system(index_path="corep_faiss.index",
                           metadata_path="corep_metadata.pkl",
                           embed_model_name="sentence-transformers/all-MiniLM-L6-v2"):
-
+    
     model = SentenceTransformer(embed_model_name)
     index = faiss.read_index(index_path)
 
@@ -209,10 +256,6 @@ def load_retrieval_system(index_path="corep_faiss.index",
         metadata = pickle.load(f)
 
     return model, index, metadata
-
-
-model, index, metadata = load_retrieval_system()
-
 
 
 def retrieve_chunks(query, model, index, metadata, top_k=5):
@@ -239,10 +282,16 @@ def retrieve_chunks(query, model, index, metadata, top_k=5):
 def definition_print(query, model, index, metadata, top_k=5):
     retrieved = retrieve_chunks(query, model, index, metadata, top_k=top_k)
 
+    output_text = ""
     for r in retrieved:
-        print(r["chunk_id"], r["source"], r["score"])
-        print(r["text"][:300])
-        print("-----")
+        output_text += f"{r['chunk_id']} | {r['source']} | score={r['score']}\n"
+        output_text += r["text"][:300] + "\n"
+        output_text += "-----\n"
+
+    return output_text
+
+
+# In[69]:
 
 
 def build_chunk_lookup(retrieved_chunks):
@@ -253,6 +302,17 @@ def build_chunk_lookup(retrieved_chunks):
     return {c["chunk_id"]: c["text"] for c in retrieved_chunks}
 
 
+# In[70]:
+
+
+MODEL_NAME = "models/gemini-3-flash-preview"
+import re
+
+ROW_EXTRACT = re.compile(r"(\d{4})")
+
+
+# In[71]:
+
 
 ROW_KEYWORDS = {
     "0010": ["own funds", "total own funds"],
@@ -261,6 +321,9 @@ ROW_KEYWORDS = {
     "0030": ["additional tier 1", "at1"],
     "0040": ["tier 2", "tier 2 capital"]
 }
+
+
+# In[72]:
 
 
 def validate_evidence(result_json, retrieved_chunks):
@@ -318,7 +381,7 @@ def validate_evidence(result_json, retrieved_chunks):
     return result_json
 
 
-
+# In[73]:
 
 
 def validate_evidence_keywords(result_json, retrieved_chunks):
@@ -354,27 +417,49 @@ def validate_evidence_keywords(result_json, retrieved_chunks):
     return flags
 
 
+# In[74]:
+
 
 def fix_thousand_reporting(result_json):
     """
     COREP reports values in 000 GBP (thousands).
-    If values look like full GBP, convert to 000 GBP.
+    Ensures all values are integers and unit is consistent.
     """
+
+    # -------- populated_cells fix --------
     for cell in result_json.get("populated_cells", []):
         val = cell.get("value")
-        if isinstance(val, (int, float)) and val > 1000000:
-            cell["value"] = int(val / 1000)
-            cell["unit"] = "000 GBP"
 
+        # Convert string numbers to int
+        if isinstance(val, str):
+            val = int(val.replace(",", "").strip())
+
+        # Convert full GBP to 000 GBP if too large
+        if isinstance(val, (int, float)) and val > 1000000:
+            val = int(val / 1000)
+
+        # Save cleaned value
+        cell["value"] = int(val) if val is not None else None
+        cell["unit"] = "000 GBP"
+
+    # -------- audit_log fix --------
     for log in result_json.get("audit_log", []):
         val = log.get("value")
+
+        # Convert string numbers to int
+        if isinstance(val, str):
+            val = int(val.replace(",", "").strip())
+
+        # Convert full GBP to 000 GBP if too large
         if isinstance(val, (int, float)) and val > 1000000:
-            log["value"] = int(val / 1000)
+            val = int(val / 1000)
+
+        log["value"] = int(val) if val is not None else None
 
     return result_json
 
 
-
+# In[75]:
 
 
 def retrieve_rowwise_context(model, index, metadata, scenario, top_k=5):
@@ -406,13 +491,8 @@ def retrieve_rowwise_context(model, index, metadata, scenario, top_k=5):
     return merged
 
 
+# In[76]:
 
-
-
-MODEL_NAME = "models/gemini-3-flash-preview"
-import re
-
-ROW_EXTRACT = re.compile(r"(\d{4})")
 
 def fix_row_codes(result_json):
     if result_json is None:
@@ -434,6 +514,10 @@ def fix_row_codes(result_json):
 
     return result_json
 
+
+# In[77]:
+
+
 def init_gemini_client(api_key: str):
     """
     Initializes Gemini client using a key passed at runtime.
@@ -448,6 +532,7 @@ def init_gemini_client(api_key: str):
 client = init_gemini_client(API_KEY)
 
 
+# In[78]:
 
 
 def get_schema_template():
@@ -485,6 +570,8 @@ def get_schema_template():
 """
 
 
+# In[79]:
+
 
 def build_context(retrieved_chunks):
     context = ""
@@ -494,29 +581,60 @@ def build_context(retrieved_chunks):
     return context
 
 
+# In[80]:
 
 
 def fix_million_values(result_json):
     """
-    If values look like millions (ex: 480 instead of 480000000),
-    convert them into full GBP units.
+    Fixes values that are mistakenly returned in MILLIONS instead of 000 GBP.
+
+    Expected output unit: 000 GBP
+    Example:
+        If model outputs 480 (meaning 480 million),
+        convert to 480000 (000 GBP)
+
+    But if model already outputs 480000 (already correct in 000 GBP),
+    do NOT touch it.
     """
+
+    def normalize(val):
+        if val is None:
+            return None
+
+        # convert numeric strings
+        if isinstance(val, str):
+            val = val.strip().replace(",", "")
+            if val.isdigit():
+                val = int(val)
+            else:
+                try:
+                    val = float(val)
+                except:
+                    return None
+
+        # Only convert if it's clearly "millions-style" output
+        # Typical millions numbers will be like 80, 480, 2500 etc.
+        if isinstance(val, (int, float)):
+            if val < 100000:   # safe threshold (values like 480, 2500, 80000)
+                return int(val * 1000)  # million GBP -> 000 GBP
+            else:
+                return int(val)
+
+        return val
+
+    # Fix populated_cells
     for cell in result_json.get("populated_cells", []):
-        val = cell.get("value")
+        cell["value"] = normalize(cell.get("value"))
+        cell["unit"] = "000 GBP"
 
-        if isinstance(val, (int, float)):
-            # If value is too small, assume it's in millions
-            if val < 1000000:
-                cell["value"] = int(val * 1_000_000)
-
+    # Fix audit_log
     for log in result_json.get("audit_log", []):
-        val = log.get("value")
-        if isinstance(val, (int, float)):
-            if val < 1000000:
-                log["value"] = int(val * 1_000_000)
+        log["value"] = normalize(log.get("value"))
 
     return result_json
 
+
+# In[81]:
 
 
 def call_gemini(client, prompt, model_name=MODEL_NAME):
@@ -525,6 +643,9 @@ def call_gemini(client, prompt, model_name=MODEL_NAME):
         contents=prompt
     )
     return response.text
+
+
+# In[82]:
 
 
 def parse_json_output(llm_output):
@@ -536,6 +657,10 @@ def parse_json_output(llm_output):
         print("❌ JSON Parsing Failed. Raw output below:\n")
         print(llm_output)
         return None
+
+
+# In[83]:
+
 
 def generate_corep_json(client, question, scenario, retrieved_chunks):
     schema_template = get_schema_template()
@@ -554,82 +679,7 @@ def generate_corep_json(client, question, scenario, retrieved_chunks):
     return structured_json
 
 
-def get_schema_template():
-    return """
-{
-  "template": "C 01.00",
-  "currency": "GBP",
-  "scenario_summary": "",
-  "populated_cells": [
-    {
-      "row": "0010",
-      "column": "0010",
-      "item": "OWN FUNDS",
-      "value": null,
-      "unit": "GBP",
-      "confidence": "",
-      "source_chunk_ids": []
-    },
-    {
-      "row": "0015",
-      "column": "0010",
-      "item": "TIER 1 CAPITAL",
-      "value": null,
-      "unit": "GBP",
-      "confidence": "",
-      "source_chunk_ids": []
-    },
-    {
-      "row": "0020",
-      "column": "0010",
-      "item": "COMMON EQUITY TIER 1 CAPITAL",
-      "value": null,
-      "unit": "GBP",
-      "confidence": "",
-      "source_chunk_ids": []
-    },
-    {
-      "row": "0030",
-      "column": "0010",
-      "item": "ADDITIONAL TIER 1 CAPITAL",
-      "value": null,
-      "unit": "GBP",
-      "confidence": "",
-      "source_chunk_ids": []
-    },
-    {
-      "row": "0040",
-      "column": "0010",
-      "item": "TIER 2 CAPITAL",
-      "value": null,
-      "unit": "GBP",
-      "confidence": "",
-      "source_chunk_ids": []
-    }
-  ],
-  "validation_flags": [],
-  "audit_log": [
-    {
-      "field": "0010",
-      "value": null,
-      "justification": "",
-      "source_chunk_ids": []
-    },
-    {
-      "field": "0015",
-      "value": null,
-      "justification": "",
-      "source_chunk_ids": []
-    },
-    {
-      "field": "0020",
-      "value": null,
-      "justification": "",
-      "source_chunk_ids": []
-    }
-  ]
-}
-"""
+# In[84]:
 
 
 def get_row_mapping_text():
@@ -645,6 +695,9 @@ RULE:
 Tier 1 (0015) = CET1 (0020) + AT1 (0030)
 Own Funds (0010) = Tier 1 (0015) + Tier 2 (0040)
 """
+
+
+# In[85]:
 
 
 def build_prompt(question, scenario, retrieved_chunks, schema_template):
@@ -695,6 +748,7 @@ Output must start with {{ and end with }} only.
     return prompt
 
 
+# In[86]:
 
 
 def validate_corep_output(result_json):
@@ -745,6 +799,7 @@ def validate_corep_output(result_json):
     return flags
 
 
+# In[87]:
 
 
 def attach_evidence(audit_log, retrieved_chunks, snippet_len=300):
@@ -760,6 +815,8 @@ def attach_evidence(audit_log, retrieved_chunks, snippet_len=300):
     return audit_log
 
 
+# In[88]:
+
 
 def print_audit_log(audit_log):
     for entry in audit_log:
@@ -770,6 +827,11 @@ def print_audit_log(audit_log):
         if "evidence_snippets" in entry:
             print("EVIDENCE:", entry["evidence_snippets"])
         print("-----")
+
+
+# In[89]:
+
+
 def merge_unique_chunks(chunks1, chunks2):
     seen = set()
     merged = []
@@ -780,6 +842,9 @@ def merge_unique_chunks(chunks1, chunks2):
             seen.add(c["chunk_id"])
 
     return merged
+
+
+# In[90]:
 
 
 def retrieve_corep_context(question, scenario, model, index, metadata, top_k=5):
@@ -832,6 +897,9 @@ Question:
    # keep more context
 
 
+# In[91]:
+
+
 def corep_assistant(client, question, scenario, model, index, metadata, top_k=8):
 
     retrieved_chunks = retrieve_rowwise_context(
@@ -875,6 +943,7 @@ def corep_assistant(client, question, scenario, model, index, metadata, top_k=8)
     }
 
 
+# In[92]:
 
 
 def json_to_corep_table(result_json):
@@ -913,6 +982,9 @@ def print_corep_template(df):
     print("\n📌 COREP Template Extract (C 01.00)\n")
     display(df)
 
+
+# In[93]:
+
 if __name__ == "__main__":
     scenario = """
     CET1 = 540 million GBP
@@ -937,3 +1009,10 @@ if __name__ == "__main__":
     result_json = output["structured_json"]
     corep_df = json_to_corep_table(result_json)
     print_corep_template(corep_df)
+
+
+# In[ ]:
+
+
+
+
