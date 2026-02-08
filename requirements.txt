@@ -1,5 +1,8 @@
+streamlit
 pandas
 numpy
 matplotlib
 pypdf
 sentence-transformers
+faiss-cpu
+google-genai
