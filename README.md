@@ -257,7 +257,7 @@ source .venv/bin/activate   # Linux/Mac
 3️⃣ Install Dependencies
 
 ```
-pip install -r requirements.txt
+./lib_install.sh
 ```
 
 🔑 Gemini API Key Setup
